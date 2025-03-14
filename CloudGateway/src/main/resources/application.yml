@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: CloudGateway
+  cloud:
+    gateway:
+      routes:
+        - id: cf-dd-route
+          uri: lb://CF-DD
+          predicates:
+            - Path=/** 
+        - id: cf-designer-route
+          uri: lb://CF-DESIGNER-STUDIO
+          predicates:
+            - Path=/**
+
+server:
+  port: 8083
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
