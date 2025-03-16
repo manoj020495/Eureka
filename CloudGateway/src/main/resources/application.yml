@@ -7,11 +7,15 @@ spring:
         - id: cf-dd-route
           uri: lb://CF-DD
           predicates:
-            - Path=/** 
+            - Path=/api/v1/**
+          filters:
+            - RewritePath=/api/v1/(?<segment>.*), /$\{segment}
         - id: cf-designer-route
-          uri: lb://CF-DESIGNER-STUDIO
+          uri: lb://CF-Designer-Studio
           predicates:
-            - Path=/**
+            - Path=/api/v2/**
+          filters:
+            - RewritePath=/api/v2/(?<segment>.*), /$\{segment}
 
 server:
   port: 8083
