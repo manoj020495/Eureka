@@ -1,0 +1,39 @@
+package com.ms.CF_DD;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.*;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+@Slf4j
+@Service
+public class ExternalApiService {
+
+    private final RestTemplate restTemplate = new RestTemplate();
+
+    public ResponseEntity<Object> callExternalApi(LoanRequestDto loanRequestDto) {
+        String externalApiUrl = "https://slocalhost43/intake/api/v1/ms";
+
+        // Set headers
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        // Create request entity
+        HttpEntity<LoanRequestDto> requestEntity = new HttpEntity<>(loanRequestDto, headers);
+
+        try {
+            log.info("Calling external API with loanNumber: {}", loanRequestDto.getLoanNumber());
+            ResponseEntity<Object> responseEntity = restTemplate.exchange(
+                externalApiUrl,
+                HttpMethod.POST,
+                requestEntity,
+                Object.class  // Use Object.class to map the response as-is
+            );
+
+            log.info("External API call successful. Response: {}", responseEntity.getBody());
+            return responseEntity;
+        } catch (Exception ex) {
+            log.error("Exception occurred while calling external API", ex);
+            throw new RuntimeException("Error calling external API: " + ex.getMessage(), ex);
+        }
+    }
+}
