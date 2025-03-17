@@ -1,6 +1,10 @@
 spring:
   application:
     name: CloudGateway
+  security:
+    user:
+      name: demo
+      password: demo
   cloud:
     gateway:
       routes:
