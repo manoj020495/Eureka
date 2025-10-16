@@ -1,0 +1,33 @@
+Hi Dasu,
+
+I checked the new updates from **Camunda** about moving from **Camunda 7 to Camunda 8**.
+Looks like they added three tools for this —
+
+---
+
+**1. Migration Analyzer & Diagram Converter**
+This one has a small web screen (UI) and can also run on our system like a Spring Boot app.
+It helps change C7 BPMN models to C8 models.
+It also updates expressions, variables, and delegate parts to match what C8 accepts.
+
+---
+
+**2. OpenRewrite Recipes**
+This is a library kind of tool.
+It changes delegate methods into job workers just by adding a plugin in our project.
+It also handles variable changes automatically.
+Only thing — it doesn’t move JUnit test cases yet.
+
+---
+
+**3. Data Migrator**
+This runs as a simple Java program (standalone).
+It moves running instances from C7 to C8.
+Runtime data part is ready for production use,
+but history data part is still in testing stage.
+Needs Java 21 or higher.
+
+---
+
+Each tool looks good, but we need to try them properly to see how well they work —
+like whether they handle only simple processes or even complex ones.
