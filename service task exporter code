@@ -1,0 +1,91 @@
+If the Job Type (worker name) is set in the Task Definition panel → store it.
+
+If not set, check if a Template/Connector (like REST, HTTP, etc.) is applied from the Template tab and store that.
+
+💡 Concept
+
+Both these details are already available in the Zeebe job record that your exporter receives.
+
+Job Type → available via jobRecord.getType()
+
+Connector Template Info → inside jobRecord.getCustomHeaders(), which usually contains:
+
+"io.camunda.connector.type" or "type" (for REST, HTTP, etc.)
+
+"io.camunda.connector.id" or "templateId" (depending on modeler version)
+
+✅ Update your existing ServiceTaskHandler code like this:
+
+Below is the enhanced snippet you can directly merge with what you already have:
+
+// Extract job type (worker name)
+String jobType = jobRecord.getType();
+
+// Extract connector/template type from custom headers if any
+String connectorType = null;
+String templateId = null;
+
+Map<String, String> customHeaders = jobRecord.getCustomHeaders();
+if (customHeaders != null && !customHeaders.isEmpty()) {
+    // Try typical keys used by Camunda 8 connectors
+    connectorType = customHeaders.getOrDefault("io.camunda.connector.type", 
+                    customHeaders.getOrDefault("connectorType", 
+                    customHeaders.getOrDefault("type", null)));
+
+    templateId = customHeaders.getOrDefault("io.camunda.connector.id", 
+                    customHeaders.getOrDefault("templateId", null));
+}
+
+// Fallbacks
+if (jobType == null || jobType.isBlank()) {
+    jobType = connectorType != null ? connectorType : "UNKNOWN";
+}
+
+// Log for debugging
+log.info("ServiceTaskHandler: jobType={}, connectorType={}, templateId={}", 
+          jobType, connectorType, templateId);
+
+🗄️ Now update your DB table and insert query:
+
+Add these columns:
+
+ALTER TABLE CAMUNDA_SERVICE_TASK ADD JOB_TYPE VARCHAR2(255);
+ALTER TABLE CAMUNDA_SERVICE_TASK ADD CONNECTOR_TYPE VARCHAR2(255);
+ALTER TABLE CAMUNDA_SERVICE_TASK ADD TEMPLATE_ID VARCHAR2(255);
+
+
+Then modify your SQL INSERT in the handler:
+
+String sql = """
+MERGE INTO CAMUNDA_SERVICE_TASK t
+USING (SELECT ? AS SERVICE_TASK_KEY FROM dual) s
+ON (t.SERVICE_TASK_KEY = s.SERVICE_TASK_KEY)
+WHEN MATCHED THEN
+    UPDATE SET STATE = ?, UPDATED_TSTAMP = ?, UPDATED_BY = ?
+WHEN NOT MATCHED THEN
+    INSERT (SERVICE_TASK_KEY, ELEMENT_ID, BPMN_PROCESS_ID, PROCESS_DEFINITION_KEY,
+            PROCESS_INSTANCE_KEY, ELEMENT_INSTANCE_KEY, TENANT_ID,
+            STATE, CUSTOM_HEADERS, JOB_TYPE, CONNECTOR_TYPE, TEMPLATE_ID,
+            CREATED_TSTAMP, UPDATED_TSTAMP, CREATED_BY, UPDATED_BY)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+""";
+
+
+Then in your prepared statement:
+
+stmt.setString(i++, state);
+stmt.setString(i++, jobRecord.getCustomHeaders().toString());
+stmt.setString(i++, jobType);
+stmt.setString(i++, connectorType);
+stmt.setString(i++, templateId);
+stmt.setObject(i++, now);
+stmt.setObject(i++, now);
+stmt.setString(i++, SYSTEM);
+stmt.setString(i++, SYSTEM);
+
+✅ Result
+
+Now your table captures for each Service Task:
+
+SERVICE_TASK_KEY	ELEMENT_ID	JOB_TYPE	CONNECTOR_TYPE	TEMPLATE_ID	STATE
+12345	SLArestCalc	slaRest	http	rest-outbound-connector	completed
